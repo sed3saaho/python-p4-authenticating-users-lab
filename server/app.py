@@ -52,6 +52,46 @@ api.add_resource(ClearSession, '/clear')
 api.add_resource(IndexArticle, '/articles')
 api.add_resource(ShowArticle, '/articles/<int:id>')
 
+class LoginUser(Resource):
+
+    def post(self):
+
+        username = request.get_json()['username']
+        user = User.query.filter(User.username == username).first()
+
+        if user:
+            session['user_id'] = user.id
+            session['page_views'] = 0
+
+            return {'id': user.id, 'username': user.username}, 200
+
+        return {'message': 'User not found'}, 404
+    
+class LogoutUser(Resource):
+
+    def delete(self):
+        session['user_id'] = None
+        session['page_views'] = None
+
+        return {}, 204
+
+api.add_resource(LoginUser, '/login')
+api.add_resource(LogoutUser, '/logout')
+
+class CheckSession(Resource):
+
+    def get(self):
+
+        if session.get('user_id'):
+            user = User.query.filter(User.id == session['user_id']).first()
+            user_json = jsonify(user.to_dict())
+
+            return make_response(user_json, 200)
+
+        return {}, 401
+
+api.add_resource(CheckSession, '/check_session')
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
